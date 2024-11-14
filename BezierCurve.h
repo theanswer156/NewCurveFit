@@ -19,11 +19,14 @@ class BezierCurve
 {
 public:
 	BezierCurve(const std::vector<Vector2d>& _points);
+
+	BezierCurve(const std::vector<Vector2d>& _points,const std::vector<Vector2d>& _tangent);
 	~BezierCurve() {};
 	std::vector<Eigen::Vector2d> outContralPoints()const;
 private:
 	void denseData(const std::vector<Vector2d>& _points);
 	void doComputeTangent();
+	void doComputeTangent_LSE();
 
 	inline Eigen::Vector2d computeDerivative(const vector<Vector2d>& contralPoints,const double& t);
 	inline Eigen::Vector2d computePrimePrime(const vector<Vector2d>& contralPoints, const double& t);

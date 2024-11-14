@@ -286,15 +286,12 @@ int main()
 {
 	std::vector<Eigen::Vector2d> contralPoints;
 	CurveFit curveFit;
-	curveFit.getData();
-	curveFit.denseData();
-	curveFit.doLineDetect();
-	curveFit.doBiArcFit();
 	vector<vector<Eigen::Vector2d>> curve_segment= curveFit.getCurves();
+	vector<vector<Eigen::Vector2d>> tangent_segment = curveFit.getTangent();
 	auto startTime = std::chrono::high_resolution_clock::now();
-	for (auto& curve : curve_segment)
+	for (int i = 0; i < curve_segment.size(); i++)
 	{
-		BezierCurve bezier_curve(curve);
+		BezierCurve bezier_curve(curve_segment[i], tangent_segment[i]);
 		vector<Eigen::Vector2d> contralpoint = bezier_curve.outContralPoints();
 		contralPoints.insert(contralPoints.end(), contralpoint.begin(), contralpoint.end());
 	}

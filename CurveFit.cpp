@@ -4,6 +4,11 @@
 
 CurveFit::CurveFit()
 {
+	getData();
+	denseData();
+	doComputeTangent_LSE();
+	doLineDetect();
+	doBiArcFit();
 }
 
 CurveFit::~CurveFit()
@@ -111,6 +116,104 @@ void CurveFit::denseData()
 		}
 		++iEnd;
 		++iBegin;
+	}
+}
+
+
+void CurveFit::doComputeTangent_LSE()
+{
+	assert(!m_vecSrcData.empty() && m_vecTangentData.empty());
+	m_vecTangentData.resize(m_vecSrcData.size());
+	double a = 0;
+	double b = 0;
+	double X = 0;
+	double Y = 0;
+	double XY = 0;
+	double XX = 0;
+	int MINLENGTH = 7;
+	int WINDOWSIZE = 9;
+	int HALFWINDOWSIZE = std::floor(WINDOWSIZE / 2);
+	size_t iBegin = 0;
+	size_t iEnd = static_cast<size_t> (WINDOWSIZE - 1);
+	size_t iMid = static_cast<size_t> (std::floor(iBegin + iEnd) / 2);
+
+	for (size_t index = 0; index < iMid; index++)
+	{
+		m_vecTangentData[index] = (m_vecSrcData[index + 1] - m_vecSrcData[index]).normalized();
+	}
+
+	for (size_t index = 0; index < WINDOWSIZE; index++)
+	{
+		X += m_vecSrcData[index].x();
+		Y += m_vecSrcData[index].y();
+		XY += m_vecSrcData[index].x() * m_vecSrcData[index].y();
+		XX += m_vecSrcData[index].x() * m_vecSrcData[index].x();
+	}
+
+	while (iEnd < m_vecSrcData.size())
+	{
+		bool bAbNormal = false;
+		if (iBegin)
+		{
+			X -= (m_vecSrcData[iBegin - 1].x());
+			X += (m_vecSrcData[iEnd].x());
+			Y -= (m_vecSrcData[iBegin - 1].y());
+			Y += (m_vecSrcData[iEnd].y());
+			XX -= (m_vecSrcData[iBegin - 1].x() * m_vecSrcData[iBegin - 1].x());
+			XX += (m_vecSrcData[iEnd].x() * m_vecSrcData[iEnd].x());
+			XY -= (m_vecSrcData[iBegin - 1].x() * m_vecSrcData[iBegin - 1].y());
+			XY += (m_vecSrcData[iEnd].x() * m_vecSrcData[iEnd].y());
+		}
+
+
+		if (std::abs(WINDOWSIZE * XX - X * X) < 1e-4 || std::abs(WINDOWSIZE * XY - X * Y) < 1e-4)
+		{
+			std::cout << "IMID : " << iMid << "\t" << "IBEGIN : " << iBegin << "\t" << "IEND : " << iEnd << std::endl;
+			bAbNormal = true;
+			a = 0.0;
+			b = 0.0;
+		}
+		else
+		{
+			a = (WINDOWSIZE * XY - X * Y) / (WINDOWSIZE * XX - X * X);
+			b = (Y - a * X) / (WINDOWSIZE);
+		}
+
+
+		//!	根据拟合的直线的斜率得到该点的单位切向量
+		//! 注意切线的方向与曲线的方向相同
+		{
+			Eigen::Vector2d lineVector = m_vecSrcData[iEnd] - m_vecSrcData[iMid];
+			if (bAbNormal)
+			{
+				bool bXDirection = std::abs(lineVector.x()) > std::abs(lineVector.y());
+				double dValue = 0.0;
+				if (bXDirection)
+				{
+					dValue = lineVector.x() > 0 ? 1 : -1;
+					m_vecTangentData[iMid] = Eigen::Vector2d{ dValue,0 };
+				}
+				else
+				{
+					dValue = lineVector.y() > 0 ? 1 : -1;
+					m_vecTangentData[iMid] = Eigen::Vector2d{ 0, dValue };
+				}
+			}
+			else
+			{
+				//!	默认Y的分量为正
+				double modulus = std::sqrt(1 + a * a);
+				bool bSameDirect = lineVector.x() * a + lineVector.y() >= 0;
+				//m_vecTangentData[iMid] = bSameDirect ? Point{ 1 / modulus,a / modulus } : Point{ -1 / modulus,-a / modulus };
+				m_vecTangentData[iMid] = Eigen::Vector2d{ 1 / modulus,a / modulus };
+				double angle = std::atan2(m_vecTangentData[iMid].x() * lineVector.y() - m_vecTangentData[iMid].y() * lineVector.x(), m_vecTangentData[iMid].dot(lineVector));
+				m_vecTangentData[iMid] = std::abs(angle) <= PI / 2 ? m_vecTangentData[iMid] : -m_vecTangentData[iMid];
+
+			}
+		}
+		++iBegin;
+		++iMid;
+		++iEnd;
 	}
 }
 /**
@@ -268,6 +371,8 @@ void CurveFit::doBiArcFit()
 		int iBeginIndex = pair.first;
 		int iEndIndex = pair.second;
 		std::vector<Eigen::Vector2d> subVec(m_vecSrcData.begin() + iBeginIndex, m_vecSrcData.begin() + iEndIndex + 1);
+		std::vector<Eigen::Vector2d> subTangnent(m_vecTangentData.begin() + iBeginIndex, m_vecTangentData.begin() + iEndIndex + 1);
 		m_vecCurves.emplace_back(subVec);
+		m_vecTangent.emplace_back(subTangnent);
 	}
 }

@@ -46,20 +46,26 @@ public:
     ~CurveFit();
     void getData();
     void denseData();
+
+    void doComputeTangent_LSE();
     double crossProduct(const Eigen::Vector2d& vec1, const Eigen::Vector2d& vec2);
     radian VectorAngle(const Eigen::Vector2d& vec1, const Eigen::Vector2d& vec2);
     void doLineDetect();
     void doBiArcFit();
 
     const vector<vector<Eigen::Vector2d>>& getCurves() const { return m_vecCurves; }
+    const vector<vector<Eigen::Vector2d>>& getTangent() const { return m_vecTangent; }
 
 private:
+
     std::vector<Eigen::Vector2d> m_vecSrcData;
+    std::vector<Eigen::Vector2d> m_vecTangentData;
     std::vector<Eigen::Vector2d> m_vecRawData;
     std::vector<bool> m_bvecStraightFlags;
     std::vector<pair<int, int>> m_vecLineSegments;
     std::vector<pair<int, int>> m_vecCurveSegments;
 
     vector<vector<Eigen::Vector2d>> m_vecCurves;
+    vector<vector<Eigen::Vector2d>> m_vecTangent;
 };
 #endif // !CURVEFIT_H

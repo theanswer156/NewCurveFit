@@ -1,4 +1,5 @@
 #include "BezierCurve.h"
+#include "BiArc.h"
 
 /**
 *	@brief 基于数值积分，计算曲线在指定区间上的弧长
@@ -247,9 +248,17 @@ vector<Vector2d> BezierCurve::smoothData(vector<Vector2d>& points_, const int& b
 }
 
 BezierCurve::BezierCurve(const std::vector<Vector2d>& _points)
-{
+{	
 	denseData(_points);
 	doComputeTangent();
+	bezierCurveFitting(points, 0, points.size() - 1);
+}
+
+BezierCurve::BezierCurve(const std::vector<Vector2d>& _points,const std::vector<Vector2d>& _tangent)
+{
+	denseData(_points);
+	this->tangent = _tangent;
+	//doComputeTangent();
 	bezierCurveFitting(points, 0, points.size() - 1);
 }
 
@@ -439,7 +448,7 @@ void BezierCurve::denseData(const vector<Vector2d>& points_)
 }
 
 /*
-* @brief 同一计算所有点的切向量
+* @brief 等间距数值方法计算所有点的切向量
 *
 ***/
 void BezierCurve::doComputeTangent()
@@ -449,17 +458,119 @@ void BezierCurve::doComputeTangent()
 	tangent.clear();
 	Eigen::Vector2d tangent(0.0, 0.0);
 
-	this->tangent.emplace_back((this->points[1] - this->points[0]).normalized());
-
-	for (size_t i = 1; i < this->points.size()-1; i++)
+	for (size_t i = 0; i < n; i++)
 	{
-		tangent = (this->points[i + 1] - this->points[i - 1]) / 2.0;
+		if (i > 0 && i < n - 1)
+		{
+			tangent = (this->points[i + 1] - this->points[i - 1]) / 2.0;
+		}
+		else if (i == 0)
+		{
+			tangent = this->points[1] - this->points[0];
+		}
+		else
+		{
+			tangent = this->points[n-1] - this->points[n-2];
+		}
 		tangent.normalize();
 		this->tangent.emplace_back(tangent);
 	}
+}
 
-	this->tangent.emplace_back((this->points[n - 1] - this->points[n - 2]).normalized());
+/*
+* @brief 使用增量式最小二乘法计算切向
+****/
+void BezierCurve::doComputeTangent_LSE()
+{
+	assert(!this->points.empty() && !this->tangent.empty());
+	double a = 0;
+	double b = 0;
+	double X = 0;
+	double Y = 0;
+	double XY = 0;
+	double XX = 0;
+	int MINLENGTH = 7;
+	int WINDOWSIZE = 9;
+	int HALFWINDOWSIZE = std::floor(WINDOWSIZE / 2);
+	size_t iBegin = 0;
+	size_t iEnd = static_cast<size_t> (WINDOWSIZE - 1);
+	size_t iMid = static_cast<size_t> (std::floor(iBegin + iEnd) / 2);
 
+	for (size_t index = 0; index < iMid; index++)
+	{
+		this->tangent[index] = (this->points[index+1] - this->points[index]).normalized();
+	}
+
+	for (size_t index = 0; index < WINDOWSIZE; index++)
+	{
+		X += this->points[index].x();
+		Y += this->points[index].y();
+		XY += this->points[index].x() * this->points[index].y();
+		XX += this->points[index].x() * this->points[index].x();
+	}
+
+	while (iEnd < this->points.size())
+	{
+		bool bAbNormal = false;
+		if (iBegin)
+		{
+			X -= (this->points[iBegin - 1].x());
+			X += (this->points[iEnd].x());
+			Y -= (this->points[iBegin - 1].y());
+			Y += (this->points[iEnd].y());
+			XX -= (this->points[iBegin - 1].x() * this->points[iBegin - 1].x());
+			XX += (this->points[iEnd].x() * this->points[iEnd].x());
+			XY -= (this->points[iBegin - 1].x() * this->points[iBegin - 1].y());
+			XY += (this->points[iEnd].x() * this->points[iEnd].y());
+		}
+
+
+		if (std::abs(WINDOWSIZE * XX - X * X) < 1e-4 || std::abs(WINDOWSIZE * XY - X * Y) < 1e-4)
+		{
+			std::cout << "IMID : " << iMid << "\t" << "IBEGIN : " << iBegin << "\t" << "IEND : " << iEnd << std::endl;
+			bAbNormal = true;
+			a = 0.0;
+			b = 0.0;
+		}
+		else
+		{
+			a = (WINDOWSIZE * XY - X * Y) / (WINDOWSIZE * XX - X * X);
+			b = (Y - a * X) / (WINDOWSIZE);
+		}
+
+
+		//!	根据拟合的直线的斜率得到该点的单位切向量
+		//! 注意切线的方向与曲线的方向相同
+		{
+			Eigen::Vector2d lineVector = this->points[iEnd] - this->points[iMid];
+			if (bAbNormal)
+			{
+				bool bXDirection = std::abs(lineVector.x()) > std::abs(lineVector.y());
+				double dValue = 0.0;
+				if (bXDirection)
+				{
+					dValue = lineVector.x() > 0 ? 1 : -1;
+					this->tangent[iMid] = Eigen::Vector2d{ dValue,0 };
+				}
+				else
+				{
+					dValue = lineVector.y() > 0 ? 1 : -1;
+					this->tangent[iMid] = Eigen::Vector2d{ 0, dValue };
+				}
+			}
+			else
+			{
+				//!	默认Y的分量为正
+				double modulus = std::sqrt(1 + a * a);
+				bool bSameDirect = lineVector.x() * a + lineVector.y() >= 0;
+				//this->tangent[iMid] = bSameDirect ? Point{ 1 / modulus,a / modulus } : Point{ -1 / modulus,-a / modulus };
+				this->tangent[iMid] = Eigen::Vector2d{ 1 / modulus,a / modulus };
+				double angle = std::atan2(this->tangent[iMid].x() * lineVector.y() - this->tangent[iMid].y() * lineVector.x(), this->tangent[iMid].dot(lineVector));
+				this->tangent[iMid] = std::abs(angle) <= PI / 2 ? this->tangent[iMid] : -this->tangent[iMid];
+
+			}
+		}
+	}
 }
 
 /*
