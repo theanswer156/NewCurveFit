@@ -290,9 +290,9 @@ int main()
 	curveFit.denseData();
 	curveFit.doLineDetect();
 	curveFit.doBiArcFit();
-	vector<vector<Eigen::Vector2d>> curves = curveFit.getCurves();
+	vector<vector<Eigen::Vector2d>> curve_segment= curveFit.getCurves();
 	auto startTime = std::chrono::high_resolution_clock::now();
-	for (auto& curve : curves)
+	for (auto& curve : curve_segment)
 	{
 		BezierCurve bezier_curve(curve);
 		vector<Eigen::Vector2d> contralpoint = bezier_curve.outContralPoints();

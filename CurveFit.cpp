@@ -149,7 +149,8 @@ void CurveFit::doLineDetect()
 {
 	assert(m_vecSrcData.size());
 	const radian ANGEL_THRESHOLD = 1e-8;
-	const int LENGTH_THRESHOLD = 10;
+	const int LENGTH_THRESHOLD = 5;
+	size_t srcDataSize = m_vecSrcData.size();
 	m_bvecStraightFlags.resize(m_vecSrcData.size());
 	//! 遍历m_vecsrcData中的每一个点，判断是否为直线
 	for (size_t i = 1; i <= m_vecSrcData.size() - 2; i++)
@@ -178,8 +179,8 @@ void CurveFit::doLineDetect()
 
 	//! 将直线段的起点和终点标记为直线段
 	//! 遍历m_bvecStraightFlags中的每一个点，如果该点为true，则该点为直线段上的点
-
-	vector<size_t> vecCurveCutIndex;
+	//! 先放两个0，最后放上两个m_vecSrcData.size() - 1，这样比较好处理
+	vector<size_t> vecCurveCutIndex(2,0);
 	size_t iTrueStart = -1;
 	int iTrueLength = 0;
 
@@ -210,8 +211,11 @@ void CurveFit::doLineDetect()
 	if (iTrueLength >= LENGTH_THRESHOLD)
 	{
 		vecCurveCutIndex.emplace_back(iTrueStart);
-		vecCurveCutIndex.emplace_back(m_vecSrcData.size() - 1);
+		vecCurveCutIndex.emplace_back(srcDataSize - 1);
 	}
+
+	vecCurveCutIndex.emplace_back(srcDataSize - 1);
+	vecCurveCutIndex.emplace_back(srcDataSize - 1);
 
 	std::cout << string(50, '-') << std::endl;
 	std::cout << "vecCurveCutIndex size : " << vecCurveCutIndex.size() << std::endl;
@@ -220,28 +224,39 @@ void CurveFit::doLineDetect()
 
 	//! 在检测出来的直线之间就是我们要找的曲线
 	//! 在vector<size_t> vecCurveCutIndex中存放了曲线的分割点的索引
-	for (size_t index = 1; index < vecCurveCutIndex.size() - 1; index += 2)
+	//! 其中为了方便，我们在vecCurveCutIndex的首尾各放上两个点，这样比较好处理
+	int MIN_CURVE_LENGTH = 5;
+	//! vector是动态的，所以vecCurveCutIndex.size() - 2也是会变的，因此不能直接用
+	for (size_t i = 1; i < vecCurveCutIndex.size() - 2; i += 2)
 	{
-		int iBeginIndex = vecCurveCutIndex[index];
-		int iEndIndex = vecCurveCutIndex[index + 1];
-		//! 这里的判断条件是曲线的长度最小阈值，因为如果曲线的长度小于10，
-		//! 那就不当成曲线，所以这里的判断条件是曲线的长度大于10
-		if (iEndIndex - iBeginIndex > 10)
+		if (vecCurveCutIndex[i + 1] - vecCurveCutIndex[i] < MIN_CURVE_LENGTH)
 		{
-			m_vecCurveSegments.emplace_back(std::make_pair(iBeginIndex, iEndIndex));
+			vecCurveCutIndex[i] = 0;
+			vecCurveCutIndex[i + 1] = 0;
 		}
 	}
 
-	//! 处理末尾部分
-	if (vecCurveCutIndex[vecCurveCutIndex.size() - 1] != m_vecSrcData.size() - 1)
+
 	{
-		int iBeginIndex = vecCurveCutIndex[vecCurveCutIndex.size() - 1];
-		int iEndIndex = m_vecSrcData.size() - 1;
-		if (iEndIndex - iBeginIndex > 10)
+		size_t Index = 1;
+		while (Index < vecCurveCutIndex.size() - 2)
 		{
-			m_vecCurveSegments.emplace_back(std::make_pair(iBeginIndex, iEndIndex));
+			size_t iStraightBegin = vecCurveCutIndex[Index];
+			++Index;
+			while (Index < vecCurveCutIndex.size() - 2 && vecCurveCutIndex[Index] == 0)
+			{
+				++Index;
+			}
+			size_t iStraightEnd = vecCurveCutIndex[Index];
+			this->m_vecLineSegments.emplace_back(std::make_pair(iStraightBegin, iStraightEnd));
+
+			++Index;
+			size_t iCurveBegin = iStraightEnd;
+			size_t iCurveEnd = vecCurveCutIndex[Index];
+			this->m_vecCurveSegments.emplace_back(std::make_pair(iCurveBegin, iCurveEnd));
 		}
 	}
+
 
 }
 
