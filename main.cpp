@@ -285,10 +285,10 @@ int test2()
 int main()
 {
 	std::vector<Eigen::Vector2d> contralPoints;
+	auto startTime = std::chrono::high_resolution_clock::now();
 	CurveFit curveFit;
 	vector<vector<Eigen::Vector2d>> curve_segment= curveFit.getCurves();
 	vector<vector<Eigen::Vector2d>> tangent_segment = curveFit.getTangent();
-	auto startTime = std::chrono::high_resolution_clock::now();
 	for (int i = 0; i < curve_segment.size(); i++)
 	{
 		BezierCurve bezier_curve(curve_segment[i], tangent_segment[i]);

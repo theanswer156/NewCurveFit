@@ -46,7 +46,7 @@ void CurveFit::getData()
 		}
 		if ((line.substr(0, 2) == "SP") && bBeginRead)
 		{
-			std::cout << line << std::endl;
+			//std::cout << line << std::endl;
 			//std::cout << std::endl;
 			//std::cout << std::endl;
 			//std::cout << std::endl;
@@ -130,9 +130,8 @@ void CurveFit::doComputeTangent_LSE()
 	double Y = 0;
 	double XY = 0;
 	double XX = 0;
-	int MINLENGTH = 7;
 	int WINDOWSIZE = 9;
-	int HALFWINDOWSIZE = std::floor(WINDOWSIZE / 2);
+	static const int HALFWINDOWSIZE = std::floor(WINDOWSIZE / 2);
 	size_t iBegin = 0;
 	size_t iEnd = static_cast<size_t> (WINDOWSIZE - 1);
 	size_t iMid = static_cast<size_t> (std::floor(iBegin + iEnd) / 2);
@@ -168,7 +167,7 @@ void CurveFit::doComputeTangent_LSE()
 
 		if (std::abs(WINDOWSIZE * XX - X * X) < 1e-4 || std::abs(WINDOWSIZE * XY - X * Y) < 1e-4)
 		{
-			std::cout << "IMID : " << iMid << "\t" << "IBEGIN : " << iBegin << "\t" << "IEND : " << iEnd << std::endl;
+			//std::cout << "IMID : " << iMid << "\t" << "IBEGIN : " << iBegin << "\t" << "IEND : " << iEnd << std::endl;
 			bAbNormal = true;
 			a = 0.0;
 			b = 0.0;
@@ -216,6 +215,33 @@ void CurveFit::doComputeTangent_LSE()
 		++iEnd;
 	}
 }
+
+
+/*
+* @brief 判断曲线的起始点和终止点的切向是否需要改变
+* @param begin 起始点索引
+* @param end 终止点索引
+* @note 起始点就看后面的点的切向与他的切向变化关系，如果变化大，使用后向差分公式计算切向
+*       终止点就看前面的点的切向与他的切向变化关系，如果变化大，使用前向差分公式计算切向
+***/
+void CurveFit::isTangentChange(const int& begin, const int& end)
+{
+	int WINDOWSIZE = 9;
+	static const int HALFWINDOWSIZE = std::floor(WINDOWSIZE / 2);
+	const double ANGEL_THRESHOLD = PI/4;
+	//! 判断起始点是否需要使用后向差分公式计算切向
+	Eigen::Vector2d tangentBegin = this->m_vecTangentData[begin];
+	Eigen::Vector2d tangent_1 = this->m_vecTangentData[begin + HALFWINDOWSIZE];
+	double angle = std::atan2(tangent_1.x() * tangentBegin.y() - tangent_1.y() * tangentBegin.x(), tangent_1.dot(tangentBegin));
+	if (angle > ANGEL_THRESHOLD)
+	{
+
+	}
+
+
+	Eigen::Vector2d tangentEnd = this->m_vecTangentData[end];
+	
+}
 /**
  * @brief 计算向量叉乘
  * @param vec1 向量1
@@ -252,7 +278,7 @@ void CurveFit::doLineDetect()
 {
 	assert(m_vecSrcData.size());
 	const radian ANGEL_THRESHOLD = 1e-8;
-	const int LENGTH_THRESHOLD = 5;
+	const int LENGTH_THRESHOLD = 6;
 	size_t srcDataSize = m_vecSrcData.size();
 	m_bvecStraightFlags.resize(m_vecSrcData.size());
 	//! 遍历m_vecsrcData中的每一个点，判断是否为直线
@@ -372,6 +398,13 @@ void CurveFit::doBiArcFit()
 		int iEndIndex = pair.second;
 		std::vector<Eigen::Vector2d> subVec(m_vecSrcData.begin() + iBeginIndex, m_vecSrcData.begin() + iEndIndex + 1);
 		std::vector<Eigen::Vector2d> subTangnent(m_vecTangentData.begin() + iBeginIndex, m_vecTangentData.begin() + iEndIndex + 1);
+
+		//! 考虑到曲线起始点和终止点切向对贝塞尔曲线拟合的影响很大，
+		//! 我们希望计算出起始点和终止点的一个邻域内的切线的变化计算出来，
+		//! 只看变化的方向，不看变化的大小，两两相比较，
+		//! 如果变化的很大说明采用LSE的方法计算出来的切向有问题，
+		//! 从而我们选取前向或者后向差分公式来计算切向
+		
 		m_vecCurves.emplace_back(subVec);
 		m_vecTangent.emplace_back(subTangnent);
 	}

@@ -48,6 +48,7 @@ public:
     void denseData();
 
     void doComputeTangent_LSE();
+    void isTangentChange(const int& begin, const int& end);
     double crossProduct(const Eigen::Vector2d& vec1, const Eigen::Vector2d& vec2);
     radian VectorAngle(const Eigen::Vector2d& vec1, const Eigen::Vector2d& vec2);
     void doLineDetect();
