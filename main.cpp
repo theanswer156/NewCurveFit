@@ -208,7 +208,7 @@ int test1()
 }
 
 
-int main()
+int test2()
 {
 	std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
 	std::normal_distribution<double> dis(0, 200.0);
@@ -258,7 +258,7 @@ int main()
 }
 
 
-int test3()
+int main()
 {
 	std::vector<Eigen::Vector2d> contralPoints;
 	auto startTime = std::chrono::high_resolution_clock::now();

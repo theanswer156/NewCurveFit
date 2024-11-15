@@ -6,6 +6,7 @@ CurveFit::CurveFit()
 {
 	getData();
 	denseData();
+	//this->m_vecSrcData = this->m_vecRawData;
 	doComputeTangent_LSE();
 	doLineDetect();
 	doBiArcFit();
@@ -69,7 +70,7 @@ void CurveFit::getData()
 		for (const auto& str : strs)
 		{
 			size_t index = str.find(" ");
-			if (index != string::npos && num == 10)
+			if (index != string::npos && num == 8)
 			{
 				Eigen::Vector2d vec;
 				std::string x = str.substr(2, index - 2);
@@ -123,7 +124,7 @@ void CurveFit::denseData()
 void CurveFit::doComputeTangent_LSE()
 {
 	assert(!m_vecSrcData.empty() && m_vecTangentData.empty());
-	m_vecTangentData.resize(m_vecSrcData.size());
+	m_vecTangentData.resize(m_vecSrcData.size(),Eigen::Vector2d());
 	double a = 0;
 	double b = 0;
 	double X = 0;
@@ -302,7 +303,7 @@ void CurveFit::doLineDetect()
 	const radian ANGEL_THRESHOLD = 1e-8;
 	const int LENGTH_THRESHOLD = 6;
 	size_t srcDataSize = m_vecSrcData.size();
-	m_bvecStraightFlags.resize(m_vecSrcData.size());
+	m_bvecStraightFlags.resize(m_vecSrcData.size(),false);
 	//! 遍历m_vecsrcData中的每一个点，判断是否为直线
 	for (size_t i = 1; i <= m_vecSrcData.size() - 2; i++)
 	{
@@ -313,10 +314,6 @@ void CurveFit::doLineDetect()
 		{
 			//! 如果叉乘的绝对值接近零，说明这相邻的三个点近似在一条直线上
 			m_bvecStraightFlags[i] = true;
-		}
-		else
-		{
-			m_bvecStraightFlags[i] = false;
 		}
 	}
 
@@ -390,21 +387,40 @@ void CurveFit::doLineDetect()
 
 	{
 		size_t Index = 1;
+		//! 判断第一个曲线段是直线还是曲线，如果vecCurveCutIndex[2]!= 0，说明第一个曲线段是曲线
+		//! 因此我们要先把第一个曲线段的直线部分放入m_vecLineSegments中，
+		//! 然后就能按照下面的方式依次处理直线和曲线交替出现的情况
+		if (vecCurveCutIndex[Index + 1])
+		{
+			++Index;
+			size_t iCurveEnd = vecCurveCutIndex[Index];
+			this->m_vecCurveSegments.emplace_back(std::make_pair(0, iCurveEnd));
+		}
 		while (Index < vecCurveCutIndex.size() - 2)
 		{
 			size_t iStraightBegin = vecCurveCutIndex[Index];
 			++Index;
-			while (Index < vecCurveCutIndex.size() - 2 && vecCurveCutIndex[Index] == 0)
+			while (Index < vecCurveCutIndex.size() - 1 && vecCurveCutIndex[Index] == 0)
 			{
 				++Index;
 			}
+
 			size_t iStraightEnd = vecCurveCutIndex[Index];
-			this->m_vecLineSegments.emplace_back(std::make_pair(iStraightBegin, iStraightEnd));
+			//! 先前假设是先直线然后紧接着是曲线，但是可能是先曲线后直线，
+			//! 所以在前面最好要判断首先出现的是曲线还是直线，然后再进行处理
+			if (Index < vecCurveCutIndex.size() )
+			{
+				this->m_vecLineSegments.emplace_back(std::make_pair(iStraightBegin, iStraightEnd));
+			}
 
 			++Index;
-			size_t iCurveBegin = iStraightEnd;
-			size_t iCurveEnd = vecCurveCutIndex[Index];
-			this->m_vecCurveSegments.emplace_back(std::make_pair(iCurveBegin, iCurveEnd));
+
+			if (Index < vecCurveCutIndex.size() )
+			{
+				size_t iCurveBegin = iStraightEnd;
+				size_t iCurveEnd = vecCurveCutIndex[Index];
+				this->m_vecCurveSegments.emplace_back(std::make_pair(iCurveBegin, iCurveEnd));
+			}
 		}
 	}
 
@@ -413,7 +429,6 @@ void CurveFit::doLineDetect()
 
 void CurveFit::doBiArcFit()
 {
-	assert(m_vecLineSegments.size());
 	for (const auto& pair : m_vecCurveSegments)
 	{
 		int iBeginIndex = pair.first;
