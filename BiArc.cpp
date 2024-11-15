@@ -17,7 +17,11 @@ Arc::Arc(Eigen::Vector2d beginPoint, Eigen::Vector2d centerPoint, Eigen::Vector2
 	endAngle = atan2(centerToEnd.y(), centerToEnd.x());
 	if(startAngle < 0) startAngle += 2 * PI;
 	if (endAngle < 0) endAngle += 2 * PI;
-	sweepAngle = startAngle > endAngle ? startAngle - endAngle : endAngle - startAngle;
+	if (startAngle > endAngle)
+	{
+		std::swap(startAngle, endAngle);
+	}
+	sweepAngle = endAngle - startAngle;
 	length = std::abs(sweepAngle * radius);
 	assert(sweepAngle >= 0);
 }

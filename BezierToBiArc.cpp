@@ -209,7 +209,7 @@ void BezierToBiArc::fromCurvesToBiArc()
 {
 	for (const auto& controlPoints : m_vecControlPoints)
 	{
-		fromBezierToBiArc(controlPoints);
+		fromBezierToBiArc_IP(controlPoints);
 	}
 }
 

@@ -54,9 +54,6 @@ static std::vector<Eigen::Vector2d> readPLTData()
 		if ((line.substr(0, 2) == "SP") && bBeginRead)
 		{
 			std::cout << line << std::endl;
-			//std::cout << std::endl;
-			//std::cout << std::endl;
-			//std::cout << std::endl;
 			bBeginRead = false;
 			bEndRead = false;
 			index++;
@@ -65,7 +62,6 @@ static std::vector<Eigen::Vector2d> readPLTData()
 		{
 			break;
 		}
-		//std::cout << line << std::endl;
 	}
 	pltFile.close();
 
@@ -81,15 +77,9 @@ static std::vector<Eigen::Vector2d> readPLTData()
 				std::string x = str.substr(2, index - 2);
 				std::string y = str.substr(index + 1, str.size() - index - 1);
 				ans.emplace_back(Eigen::Vector2d(std::stod(x), std::stod(y)));
-				//std::cout << "X : " << x << "\t" << "Y : " << y << std::endl;
 			}
-			//std::cout << str << std::endl;
 		}
 		num++;
-		//std::cout << std::endl;
-		//std::cout << std::endl;
-		//std::cout << std::endl;
-
 	}
 	return ans;
 }
@@ -218,7 +208,7 @@ int test1()
 }
 
 
-int test2()
+int main()
 {
 	std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
 	std::normal_distribution<double> dis(0, 200.0);
@@ -235,26 +225,12 @@ int test2()
 	//	}
 	//}
 
-	contral_points.emplace_back(Eigen::Vector2d(500, 0));
-	contral_points.emplace_back(Eigen::Vector2d(800, 400));
-	contral_points.emplace_back(Eigen::Vector2d(400, 800));
-	contral_points.emplace_back(Eigen::Vector2d(0,500));
+	contral_points.emplace_back(Eigen::Vector2d(15765,6967));
+	contral_points.emplace_back(Eigen::Vector2d(15778.9,7015.66));
+	contral_points.emplace_back(Eigen::Vector2d(15805.3,7048.89));
+	contral_points.emplace_back(Eigen::Vector2d(15860,7058));
+	
 
-
-	//std::fstream openfile("C:\\Users\\Zhushengb\\source\\repos\\Xu_BiArcFitting\\data\\bezier_curve.txt", std::ios::out | std::ios::app);
-	//if (openfile.is_open())
-	//{
-	//	int index = 0;
-	//	for (size_t i = 0; i < contral_points.size(); i++)
-	//	{
-	//		++index;
-	//		openfile << contral_points[i].x() << "\t" << contral_points[i].y() << "\t";
-	//		if (index % 4 == 0)
-	//		{
-	//			openfile << std::endl;
-	//		}
-	//	}
-	//}
 
 	auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -282,7 +258,7 @@ int test2()
 }
 
 
-int main()
+int test3()
 {
 	std::vector<Eigen::Vector2d> contralPoints;
 	auto startTime = std::chrono::high_resolution_clock::now();

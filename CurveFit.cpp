@@ -251,7 +251,7 @@ void CurveFit::isTangentChange(const int& begin, const int& end)
 	Eigen::Vector2d tangent_3 = this->m_vecTangentData[end - HALFWINDOWSIZE];
 	double sweepAngle_End = std::atan2(tangent_3.x() * tangentEnd.y() - tangent_3.y() * tangentEnd.x(), tangent_3.dot(tangentEnd));
 
-	if (end + HALFWINDOWSIZE < m_vecSrcData.size() - 1)
+	if (end + HALFWINDOWSIZE < m_vecSrcData.size())
 	{
 		Eigen::Vector2d tangent_4 = this->m_vecTangentData[end + HALFWINDOWSIZE];
 		double sweepAngle = std::atan2(tangent_4.x() * tangentEnd.y() - tangent_4.y() * tangentEnd.x(), tangent_4.dot(tangentEnd));
