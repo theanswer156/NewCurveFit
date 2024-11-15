@@ -228,19 +228,41 @@ void CurveFit::isTangentChange(const int& begin, const int& end)
 {
 	int WINDOWSIZE = 9;
 	static const int HALFWINDOWSIZE = std::floor(WINDOWSIZE / 2);
-	const double ANGEL_THRESHOLD = PI/4;
+	const double ANGEL_THRESHOLD = PI/8;
 	//! 判断起始点是否需要使用后向差分公式计算切向
 	Eigen::Vector2d tangentBegin = this->m_vecTangentData[begin];
 	Eigen::Vector2d tangent_1 = this->m_vecTangentData[begin + HALFWINDOWSIZE];
-	double angle = std::atan2(tangent_1.x() * tangentBegin.y() - tangent_1.y() * tangentBegin.x(), tangent_1.dot(tangentBegin));
-	if (angle > ANGEL_THRESHOLD)
-	{
+	double sweepAngle_Begin = std::atan2(tangent_1.x() * tangentBegin.y() - tangent_1.y() * tangentBegin.x(), tangent_1.dot(tangentBegin));
 
+	if (begin - HALFWINDOWSIZE > 0)
+	{
+		Eigen::Vector2d tangent_2 = this->m_vecTangentData[begin - HALFWINDOWSIZE];
+		double sweepAngle = std::atan2(tangent_2.x() * tangentBegin.y() - tangent_2.y() * tangentBegin.x(), tangent_2.dot(tangentBegin));
+		sweepAngle_Begin+=sweepAngle;
+	}
+	if (sweepAngle_Begin > ANGEL_THRESHOLD)
+	{
+		this->m_vecTangentData[begin] = (this->m_vecSrcData[begin + HALFWINDOWSIZE] - this->m_vecSrcData[begin]).normalized();
 	}
 
 
+
 	Eigen::Vector2d tangentEnd = this->m_vecTangentData[end];
-	
+	Eigen::Vector2d tangent_3 = this->m_vecTangentData[end - HALFWINDOWSIZE];
+	double sweepAngle_End = std::atan2(tangent_3.x() * tangentEnd.y() - tangent_3.y() * tangentEnd.x(), tangent_3.dot(tangentEnd));
+
+	if (end + HALFWINDOWSIZE < m_vecSrcData.size() - 1)
+	{
+		Eigen::Vector2d tangent_4 = this->m_vecTangentData[end + HALFWINDOWSIZE];
+		double sweepAngle = std::atan2(tangent_4.x() * tangentEnd.y() - tangent_4.y() * tangentEnd.x(), tangent_4.dot(tangentEnd));
+		sweepAngle_End += sweepAngle;
+	}
+
+	if (sweepAngle_End > ANGEL_THRESHOLD)
+	{
+		this->m_vecTangentData[end] = (this->m_vecSrcData[end] - this->m_vecSrcData[end - HALFWINDOWSIZE]).normalized();
+	}
+
 }
 /**
  * @brief 计算向量叉乘
@@ -396,6 +418,9 @@ void CurveFit::doBiArcFit()
 	{
 		int iBeginIndex = pair.first;
 		int iEndIndex = pair.second;
+
+		isTangentChange(iBeginIndex, iEndIndex);
+
 		std::vector<Eigen::Vector2d> subVec(m_vecSrcData.begin() + iBeginIndex, m_vecSrcData.begin() + iEndIndex + 1);
 		std::vector<Eigen::Vector2d> subTangnent(m_vecTangentData.begin() + iBeginIndex, m_vecTangentData.begin() + iEndIndex + 1);
 
@@ -404,7 +429,6 @@ void CurveFit::doBiArcFit()
 		//! 只看变化的方向，不看变化的大小，两两相比较，
 		//! 如果变化的很大说明采用LSE的方法计算出来的切向有问题，
 		//! 从而我们选取前向或者后向差分公式来计算切向
-		
 		m_vecCurves.emplace_back(subVec);
 		m_vecTangent.emplace_back(subTangnent);
 	}
