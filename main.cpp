@@ -5,6 +5,44 @@
 #include "BezierCurve.h"
 #include "BezierToBiArc.h"
 
+static vector<vector<Eigen::Vector2d>> readBezierTXT(string filePath)
+{
+	vector<vector<Eigen::Vector2d>> ans;
+	std::string line;
+	std::istringstream iss;
+	std::ifstream file(filePath);
+	if (!file.is_open()) {
+		std::cerr << "Error opening file: " << filePath << std::endl;
+		return ans;
+	}
+
+	while (std::getline(file, line))
+	{
+		std::cout <<"line: " << line << std::endl;
+		vector<Eigen::Vector2d> points;
+		iss.clear();
+		iss.str(line);
+		double x, y;
+		bool abnormal = false;
+		while (iss >> x >> y) {
+			if (std::abs(x) > 1e10 || std::abs(y) > 1e10)
+			{
+				abnormal = true;
+				break;
+			}
+			std::cout << "x: " << x << " y: " << y << std::endl;
+			points.emplace_back(Eigen::Vector2d(x, y));
+		}
+		if (!abnormal)
+		{
+			ans.emplace_back(points);
+		}
+	}
+	file.close();
+	return ans;
+}
+
+
 static std::vector<Eigen::Vector2d> readTXTData(string filePath)
 {
 	std::vector<Eigen::Vector2d> ans;
@@ -43,7 +81,7 @@ static std::vector<Eigen::Vector2d> readPLTData()
 	std::string line;
 	while (std::getline(pltFile, line)) {
 		// 打印文件的每一行
-		std::cout << line << "\t" << std::endl;
+		/*std::cout << line << "\t" << std::endl;*/
 		if (line.substr(0, 2) == "PU") {
 			bBeginRead = true;
 		}
@@ -53,7 +91,7 @@ static std::vector<Eigen::Vector2d> readPLTData()
 		}
 		if ((line.substr(0, 2) == "SP") && bBeginRead)
 		{
-			std::cout << line << std::endl;
+			/*std::cout << line << std::endl;*/
 			bBeginRead = false;
 			bEndRead = false;
 			index++;
@@ -208,12 +246,16 @@ int test1()
 }
 
 
-int test2()
+static int test3();
+
+int main()
 {
+
+	test3();
 	std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
 	std::normal_distribution<double> dis(0, 200.0);
 	std::vector<Eigen::Vector2d> contral_points;
-	static const int NUM_OF_BEZIER_CURVE = 2;
+	//static const int NUM_OF_BEZIER_CURVE = 2;
 	//for (int i = 0; i < NUM_OF_BEZIER_CURVE; i++)
 	//{
 	//	for (int j = 0; j < 4; j++)
@@ -225,29 +267,37 @@ int test2()
 	//	}
 	//}
 
-	contral_points.emplace_back(Eigen::Vector2d(15765,6967));
-	contral_points.emplace_back(Eigen::Vector2d(15778.9,7015.66));
-	contral_points.emplace_back(Eigen::Vector2d(15805.3,7048.89));
-	contral_points.emplace_back(Eigen::Vector2d(15860,7058));
+	//contral_points.emplace_back(Eigen::Vector2d(15765,6967));
+	//contral_points.emplace_back(Eigen::Vector2d(15778.9,7015.66));
+	//contral_points.emplace_back(Eigen::Vector2d(15805.3,7048.89));
+	//contral_points.emplace_back(Eigen::Vector2d(15860,7058));
 	
 
-
 	auto startTime = std::chrono::high_resolution_clock::now();
+	string filePath = "C:\\Users\\Zhushengb\\source\\repos\\Xu_BiArcFitting\\data\\bezier_curve.txt";
+	vector<vector<Eigen::Vector2d>> bezier_points = readBezierTXT(filePath);
 
-	BezierToBiArc bezier_to_biarc(contral_points);
-	bezier_to_biarc.fromCurvesToBiArc();
-	std::vector<BiArc> biarcs = bezier_to_biarc.outBiArcs();
-
-	std::fstream file("C:\\Users\\Zhushengb\\source\\repos\\Xu_BiArcFitting\\data\\biarc_curve.txt", std::ios::out | std::ios::app);
-	if (file.is_open())
+	for (auto& contral_points : bezier_points)
 	{
-		for (const auto& biarc : biarcs)
+		BezierToBiArc bezier_to_biarc(contral_points);
+		bezier_to_biarc.fromCurvesToBiArc();
+		std::vector<BiArc> biarcs = bezier_to_biarc.outBiArcs();
+
+		std::fstream file("C:\\Users\\Zhushengb\\source\\repos\\Xu_BiArcFitting\\data\\biarc_curve.txt", std::ios::out | std::ios::app);
+		if (file.is_open())
 		{
-			file << biarc;
+			for (const auto& biarc : biarcs)
+			{
+				file << biarc;
+			}
+			file.close();
+
 		}
-		file.close();
 
 	}
+
+
+
 	
 	auto endTime = std::chrono::high_resolution_clock::now();
 
@@ -258,7 +308,7 @@ int test2()
 }
 
 
-int main()
+static int test3()
 {
 	std::vector<Eigen::Vector2d> contralPoints;
 	auto startTime = std::chrono::high_resolution_clock::now();

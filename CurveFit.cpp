@@ -37,7 +37,6 @@ void CurveFit::getData()
 	std::string line;
 	while (std::getline(pltFile, line)) {
 		// 打印文件的每一行
-		std::cout << line << "\t" << std::endl;
 		if (line.substr(0, 2) == "PU") {
 			bBeginRead = true;
 		}
@@ -70,7 +69,7 @@ void CurveFit::getData()
 		for (const auto& str : strs)
 		{
 			size_t index = str.find(" ");
-			if (index != string::npos && num == 8)
+			if (index != string::npos && num == 10)
 			{
 				Eigen::Vector2d vec;
 				std::string x = str.substr(2, index - 2);
@@ -301,7 +300,7 @@ void CurveFit::doLineDetect()
 {
 	assert(m_vecSrcData.size());
 	const radian ANGEL_THRESHOLD = 1e-8;
-	const int LENGTH_THRESHOLD = 6;
+	const int LENGTH_THRESHOLD = 10;
 	size_t srcDataSize = m_vecSrcData.size();
 	m_bvecStraightFlags.resize(m_vecSrcData.size(),false);
 	//! 遍历m_vecsrcData中的每一个点，判断是否为直线

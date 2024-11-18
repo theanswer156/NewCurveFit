@@ -12,6 +12,11 @@ BezierToBiArc::BezierToBiArc(const std::vector<Vector2d>& controlPoints)
 	assert(n % 4 == 0);
 	for (size_t i = 0; i < n; i += 4)
 	{
+		if (controlPoints[i] == controlPoints[i + 1] || controlPoints[i + 2] == controlPoints[i + 3])
+		{
+			std::cout << "Error: Bezier curve has degenerate segment!" << std::endl;
+			continue;
+		}
 		m_vecControlPoints.emplace_back(vector<Vector2d>{controlPoints[i], controlPoints[i + 1], 
 													controlPoints[i + 2], controlPoints[i + 3]});
 	}
@@ -21,6 +26,34 @@ std::vector<BiArc> BezierToBiArc::outBiArcs() const
 {
 	return m_vecBiArc;
 	// TODO: 在此处插入 return 语句
+}
+
+
+/*
+* @brief 判断点p3是否在矩形p1-p2的内部
+* @param p1	矩形的某一个端点
+* @param p2	矩形的某一个端点
+* @param p3	待判断的点
+* @return	true表示p3在矩形p1-p2的内部，false表示p3在矩形p1-p2的外部
+* @note		矩形的端点可以是任意两点，如果传入的两个点形成的直线平行或者垂直于坐标轴，
+*			则对p3对应的某个分量不做限制
+****/
+inline bool BezierToBiArc::isInRectAngle(const Vector2d& p1, const Vector2d& p2, const Vector2d& p3)
+{
+	if (p1.x() == p2.x())
+	{
+		return p3.y() >= std::min(p1.y(), p2.y()) && p3.y() <= std::max(p1.y(), p2.y());
+	}
+	else if (p1.y() == p2.y())
+	{
+		return p3.x() >= std::min(p1.x(), p2.x()) && p3.x() <= std::max(p1.x(), p2.x());
+	}
+	else
+	{
+		bool bInXRange = p3.x() >= std::min(p1.x(), p2.x()) && p3.x() <= std::max(p1.x(), p2.x());
+		bool bInYRange = p3.y() >= std::min(p1.y(), p2.y()) && p3.y() <= std::max(p1.y(), p2.y());
+		return bInXRange && bInYRange;
+	}
 }
 
 /*
@@ -122,7 +155,7 @@ Eigen::Vector2d BezierToBiArc::lineIntersection(const Vector2d& p1, const Vector
 	if (std::abs(t1.dot(t2)) > LINE_INTERSECTION_TOLERENCE)
 	{
 		std::cout << "Error: The two lines are parallel or skew!" << std::endl;
-		return Eigen::Vector2d();
+		return Eigen::Vector2d(0.0,0.0);
 	}
 
 	//! 没有异常就说明两条直线有交点，下面分别对两条直线斜率不存在的情况进行处理
@@ -382,6 +415,14 @@ void BezierToBiArc::fromBezierToBiArc_IP(const std::vector<Vector2d>& controlPoi
 	}
 	Eigen::Vector2d PointC = innerPoint(PointA, PointB, G);
 
+	//! 判断点C是否在AB的矩形内,如果不在说明内心出去了，直接从中间分割
+	if (!isInRectAngle(PointA, PointB, PointC))
+	{
+		double midTime = (beginTime + endTime) / 2;
+		fromBezierToBiArc_IP(controlPoints, beginTime, midTime, TOLERENCE);
+		fromBezierToBiArc_IP(controlPoints, midTime, endTime, TOLERENCE);
+		return;
+	}
 	
 	Eigen::Vector2d mid_AC = (PointC + PointA) / 2;
 	Eigen::Vector2d perPend_AC = antiClockWise * (PointC - PointA).normalized();

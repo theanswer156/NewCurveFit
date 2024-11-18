@@ -23,6 +23,7 @@ public:
 	BezierToBiArc(const std::vector<Vector2d>& controlPoints);
 	~BezierToBiArc() {};
 	std::vector<BiArc> outBiArcs()const;
+	inline bool isInRectAngle(const Vector2d& p1, const Vector2d& p2, const Vector2d& p3);
 	inline Vector2d PointAt(const std::vector<Vector2d>& controlPoints, const double& t);
 	inline Eigen::Vector2d computeDerivative(const vector<Vector2d>& contralPoints, const double& t);
 	Eigen::Vector2d innerPoint(const Vector2d& p1, const Vector2d& p2, const Vector2d& p3);
