@@ -1,10 +1,13 @@
 #include "CurveFit.h"
 #include "BezierCurve.h"
 #include "BiArc.h"
+#include "data.h"
 
 CurveFit::CurveFit()
 {
-	getData();
+	//getData();
+	
+	readTxtData();
 	denseData();
 	//this->m_vecSrcData = this->m_vecRawData;
 	doComputeTangent_LSE();
@@ -85,6 +88,22 @@ void CurveFit::getData()
 		//std::cout << std::endl;
 		//std::cout << std::endl;
 
+	}
+}
+
+
+/*
+* 	@brief 从txt文件中读取原始数据,存放到m_vecRawData中
+* 	@note 这里的读取方式是读取txt文件中的每一行，并将其中的x,y坐标存放到m_vecRawData中
+***/
+void CurveFit::readTxtData()
+{
+	size_t size = raw_data_from_PLT.size();
+	for (size_t i = 0; i < size; i += 2)
+	{
+		Eigen::Vector2d vec;
+		vec<<raw_data_from_PLT[i], raw_data_from_PLT[i+1];
+		m_vecRawData.emplace_back(vec);
 	}
 }
 /*
@@ -300,7 +319,7 @@ void CurveFit::doLineDetect()
 {
 	assert(m_vecSrcData.size());
 	const radian ANGEL_THRESHOLD = 1e-8;
-	const int LENGTH_THRESHOLD = 10;
+	const int LENGTH_THRESHOLD = 50;
 	size_t srcDataSize = m_vecSrcData.size();
 	m_bvecStraightFlags.resize(m_vecSrcData.size(),false);
 	//! 遍历m_vecsrcData中的每一个点，判断是否为直线

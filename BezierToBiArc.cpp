@@ -148,11 +148,11 @@ Eigen::Vector2d BezierToBiArc::innerPoint(const Vector2d& p1, const Vector2d& p2
 ***/
 Eigen::Vector2d BezierToBiArc::lineIntersection(const Vector2d& p1, const Vector2d& t1, const Vector2d& p2, const Vector2d& t2)
 {
-	static const double LINE_INTERSECTION_TOLERENCE = 1-1e-5;
+	static const double LINE_INTERSECTION_TOLERENCE = 1e-6;
 	Eigen::Vector2d result;
 	//! 利用两条直线的方向向量的点乘是否接近于1来判断两条直线是否相交
 	//! 如果异常可以给一点perturbation，或者进行拟合的时候进行二分
-	if (std::abs(t1.dot(t2)) > LINE_INTERSECTION_TOLERENCE)
+	if (std::abs(t1.x() * t2.y() - t1.y() * t2.x()) < LINE_INTERSECTION_TOLERENCE)
 	{
 		std::cout << "Error: The two lines are parallel or skew!" << std::endl;
 		return Eigen::Vector2d(0.0,0.0);
@@ -391,7 +391,12 @@ void BezierToBiArc::fromBezierToBiArc(const std::vector<Vector2d>& controlPoints
 
 void BezierToBiArc::fromBezierToBiArc_IP(const std::vector<Vector2d>& controlPoints, const double& beginTime, const double& endTime, const double& TOLERENCE)
 {
-	assert(controlPoints.size() == 4 && endTime > beginTime);
+	assert(controlPoints.size() == 4 && endTime >= beginTime);
+
+	if (std::abs(endTime - beginTime) < 1e-6)
+	{
+		return;
+	}
 
 	static const Eigen::Rotation2D<double> antiClockWise(PI / 2);
 	static const Eigen::Rotation2D<double> clockWise(-PI / 2);

@@ -45,6 +45,7 @@ public:
     CurveFit();
     ~CurveFit();
     void getData();
+    void readTxtData();
     void denseData();
 
     void doComputeTangent_LSE();

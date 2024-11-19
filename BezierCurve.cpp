@@ -256,8 +256,9 @@ BezierCurve::BezierCurve(const std::vector<Vector2d>& _points)
 
 BezierCurve::BezierCurve(const std::vector<Vector2d>& _points,const std::vector<Vector2d>& _tangent)
 {
-	denseData(_points);
+	this->points = _points;
 	this->tangent = _tangent;
+	//denseData(_points);
 	//doComputeTangent();
 	bezierCurveFitting(points, 0, points.size() - 1);
 }
