@@ -283,10 +283,10 @@ void BezierCurve::bezierCurveFitting(std::vector<Vector2d>& points_, const int& 
 	if (size == 2)
 	{
 
-		ans.emplace_back(points_[begin]);
-		ans.emplace_back(points_[begin]);
-		ans.emplace_back(points_[end]);
-		ans.emplace_back(points_[end]);
+		ans[0]=(points_[begin]);
+		ans[1]=(points_[begin]);
+		ans[2]=(points_[end]);
+		ans[3]=(points_[end]);
 		this->ctrlPoints.insert(this->ctrlPoints.end(), ans.begin(), ans.end());
 		return;
 	}

@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "curveFit.h"
+#include "BSpline.h"
 #include <random>
 #include "BezierCurve.h"
 #include "BezierToBiArc.h"
@@ -248,7 +249,7 @@ int test1()
 
 static int test3();
 
-int main()
+int test2()
 {
 
 	test3();
@@ -347,6 +348,88 @@ static int test3()
 		}
 		openfile.close();
 	}
+
+	return 0;
+}
+
+int main()
+{
+	std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
+	std::normal_distribution<double> dis(0.0,200.0);
+	std::uniform_int_distribution<int> dis_int(0,15);
+	vector<Vector2d> contral_points;
+	vector<double> knot_vector;
+	const int CONTROLPOINTSNUM= 8;
+	const int KNOTPOINTSNUM = 13;
+	for (int j = 0; j < CONTROLPOINTSNUM; j++)
+	{
+		double x = dis(gen);
+		double y = dis(gen);
+		Eigen::Vector2d point(x, y);
+		contral_points.emplace_back(point);
+	}
+
+	for (int i = 0; i < KNOTPOINTSNUM; i++)
+	{
+		double knot = dis_int(gen);
+		knot_vector.emplace_back(knot);
+	}
+
+	std::sort(knot_vector.begin(), knot_vector.end());
+
+	auto startTime = std::chrono::high_resolution_clock::now();
+
+	BSplineCurve bspline_curve(contral_points, knot_vector);
+	std::vector<Eigen::Vector2d> bspline_points = bspline_curve.outCurvePoints();
+	std::vector<Eigen::Vector2d> bspline_tangent = bspline_curve.outPointsTangent();
+	{
+		std::ofstream openfile("C:\\Users\\Zhushengb\\source\\repos\\Xu_BiArcFitting\\data\\bspline_curve.txt", std::ios::out | std::ios::app);
+		if (openfile.is_open())
+		{
+			for (const auto& point : bspline_points)
+			{
+				openfile << point.x() << "\t" << point.y() << "\n";
+			}
+			openfile.close();
+		}
+	}
+
+	auto endTime_spline = std::chrono::high_resolution_clock::now();
+
+	auto duration_spline = std::chrono::duration_cast<std::chrono::milliseconds>(endTime_spline - startTime);
+	std::cout << " Spend time: " << duration_spline.count() << " milliseconds" << std::endl;
+
+	BezierCurve bezier_curve(bspline_points, bspline_tangent);
+	std::vector<Eigen::Vector2d> control_points = bezier_curve.outContralPoints();
+
+	auto endTime = std::chrono::high_resolution_clock::now();
+
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+	std::cout << " Spend time: " << duration.count() << " milliseconds" << std::endl;
+
+	{
+		std::ofstream openfile("C:\\Users\\Zhushengb\\source\\repos\\Xu_BiArcFitting\\data\\bezier_curve.txt", std::ios::out | std::ios::app);
+		if (openfile.is_open())
+		{
+			int index = 0;
+			for (size_t i = 0; i < control_points.size(); i++)
+			{
+				++index;
+				openfile << control_points[i].x() << "\t" << control_points[i].y() << "\t";
+				if (index % 4 == 0)
+				{
+					openfile << std::endl;
+				}
+			}
+
+		}
+		else
+		{
+			std::cout << "open file failed" << std::endl;
+		}
+		openfile.close();
+	}
+
 
 	return 0;
 }
