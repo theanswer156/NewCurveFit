@@ -13,7 +13,7 @@ public:
     BSplineCurve(const std::vector<Eigen::Vector2d>& controlPoints, const std::vector<double>& knotVector);
 
     void discreteCurve2Points();
-
+    void splitBSplineCurve(const double& t);
 
     vector<double> outKnots() { return knotVector; }
     vector<Vector2d> outControlPoints() { return controlPoint; }

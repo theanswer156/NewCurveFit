@@ -39,7 +39,7 @@ private:
 	void reParameterize(const vector<Vector2d>& contralPoints, const vector<Vector2d>& points,const int& begin, const int& end, vector<double>& parameter);
 	double computeMaxError(vector<Vector2d>& contraPoints, vector<Vector2d>& points_, const int& begin, const int& end,vector<double>& parameter,int& maxErrorIndex);
 	vector<Vector2d> smoothData(vector<Vector2d>& points_, const int& begin, const int& end);
-	void bezierCurveFitting(std::vector<Vector2d>& points_, const int& begin, const int& end,const double& TOLERENCE = 0.2);
+	void bezierCurveFitting(std::vector<Vector2d>& points_, const int& begin, const int& end,const double& TOLERENCE = 1e-2);
 	bool bezierCurveFittingWithSmooth(std::vector<Vector2d>& points_, const int& begin, const int& end, const double& TOLERENCE = 5.0);
 
 private:

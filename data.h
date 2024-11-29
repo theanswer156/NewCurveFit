@@ -2,7 +2,7 @@
 #ifndef DATA_H
 #define DATA_H
 #include <vector>
-inline std::vector<double> raw_data_from_PLT = { 
+std::vector<double> raw_data_from_PLT = { 
 -9475,2846,
 -9482,2847,
 -9488,2849,

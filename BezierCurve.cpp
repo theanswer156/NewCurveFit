@@ -308,6 +308,15 @@ void BezierCurve::bezierCurveFitting(std::vector<Vector2d>& points_, const int& 
 		return;
 	}
 
+	//! 如果误差很大，超过设置容差的一定范围，那么直接从最大误差处分割数据点
+	//! 然后再次进行拟合，直到误差小于容差为止
+	if (maxError > 50.0 * TOLERENCE)
+	{
+		bezierCurveFitting(points_, begin, maxErrorIndex, TOLERENCE);
+		bezierCurveFitting(points_, maxErrorIndex, end, TOLERENCE);
+		return;
+	}
+
 
 	//! 如果误差在容差的10倍范围内，由于容差设置的也很小，
 	//! 所以我们希望能够直接进行优化以便使用尽量少的贝塞尔曲线拟合数据点

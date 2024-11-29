@@ -36,6 +36,16 @@ void BSplineCurve::discreteCurve2Points()
 	}
 }
 
+/*
+*@brief: 在降阶时，如果降阶后的B样条曲线与原曲线误差较大，
+		从最大误差处将B样条曲线分割，分割成两个B样条曲线
+*@param t: 最大误差处的t值
+*****/
+void BSplineCurve::splitBSplineCurve(const double& splitTime)
+{
+
+}
+
 Vector2d BSplineCurve::PointAt(double& t)
 {
 	Eigen::Vector2d ans(0.0, 0.0);
@@ -47,6 +57,12 @@ Vector2d BSplineCurve::PointAt(double& t)
 	return ans;
 }
 
+/*
+*@brief: B样条曲线基函数
+* @param i: 控制点序号
+* @param t: 时间参数
+* @param _degree: 基函数次数(不是阶数)
+***/
 double BSplineCurve::basisFunction(const int& i, const double& t, const int& _degree)
 {
 	if (!_degree)

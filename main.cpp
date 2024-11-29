@@ -359,8 +359,8 @@ int main()
 	std::uniform_int_distribution<int> dis_int(0,15);
 	vector<Vector2d> contral_points;
 	vector<double> knot_vector;
-	const int CONTROLPOINTSNUM= 8;
-	const int KNOTPOINTSNUM = 13;
+	const int CONTROLPOINTSNUM= 15;
+	const int KNOTPOINTSNUM = 20;
 	for (int j = 0; j < CONTROLPOINTSNUM; j++)
 	{
 		double x = dis(gen);
@@ -397,7 +397,7 @@ int main()
 	auto endTime_spline = std::chrono::high_resolution_clock::now();
 
 	auto duration_spline = std::chrono::duration_cast<std::chrono::milliseconds>(endTime_spline - startTime);
-	std::cout << " Spend time: " << duration_spline.count() << " milliseconds" << std::endl;
+	std::cout << " Discretize Spend time: " << duration_spline.count() << " milliseconds" << std::endl;
 
 	BezierCurve bezier_curve(bspline_points, bspline_tangent);
 	std::vector<Eigen::Vector2d> control_points = bezier_curve.outContralPoints();
