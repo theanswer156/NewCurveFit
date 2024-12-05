@@ -352,15 +352,31 @@ static int test3()
 	return 0;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+	if (argc != 3)
+	{
+		std::cerr << "Usage: " << argv[0] << " <positive_integer_1> <positive_integer_2>" << std::endl;
+		return 1;
+	}
 	std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
 	std::normal_distribution<double> dis(0.0,200.0);
 	std::uniform_int_distribution<int> dis_int(0,15);
 	vector<Vector2d> contral_points;
 	vector<double> knot_vector;
-	const int CONTROLPOINTSNUM= 15;
-	const int KNOTPOINTSNUM = 20;
+	const int CONTROLPOINTSNUM= std::stoi(argv[1]);
+	const int KNOTPOINTSNUM = std::stoi(argv[2]);
+	std::cout << "Control points number: " << CONTROLPOINTSNUM << std::endl;
+	std::cout << "Knot points number: " << KNOTPOINTSNUM << std::endl;
+
+
+
+	if (CONTROLPOINTSNUM >= KNOTPOINTSNUM)
+	{
+		std::cerr << "Error: control points number should be less than knot points number" << std::endl;
+		return 1;
+	}
+
 	for (int j = 0; j < CONTROLPOINTSNUM; j++)
 	{
 		double x = dis(gen);

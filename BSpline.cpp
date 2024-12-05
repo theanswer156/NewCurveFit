@@ -36,15 +36,92 @@ void BSplineCurve::discreteCurve2Points()
 	}
 }
 
+
 /*
-*@brief: 在降阶时，如果降阶后的B样条曲线与原曲线误差较大，
-		从最大误差处将B样条曲线分割，分割成两个B样条曲线
-*@param t: 最大误差处的t值
-*****/
-void BSplineCurve::splitBSplineCurve(const double& splitTime)
+*@berif: Boehm算法插入节点，每次只能插入一个节点，计算控制点
+*		 然后把插入的节点和插入到初始节点向量，计算出来的控制点放到对应位置
+*		 然后再一次使用Boehm算法进行下一个节点的插入
+***/
+void BSplineCurve::BoehmKnotInsert()
 {
+	//! 确定B样条的有效域
+	int beginKnotIndex = this->degree - 1;
+	int endKnotIndex = this->controlPoint.size();
+	
+	//! 确定插入节点索引以及重复度
+	unordered_map<double, int> knotIndexMap;
+	//! 先试一下所有的节点都插入  这很符合贝塞尔曲线的节点的重复度
+	//! 这里还真不能统计所有的节点，只能在B样条有效域内统计
+	for (int i = beginKnotIndex; i <= endKnotIndex; i++)
+	{
+		knotIndexMap[knotVector[i]]++;
+	}
+
+	vector<pair<double, int>> kontInsert(knotIndexMap.begin(), knotIndexMap.end());
+
+
+	for (const auto& _pair : kontInsert)
+	{
+		double knot = _pair.first;
+		int repeat = _pair.second;
+		//! 插入次数和插入位置
+		int insertTimes = this->degree - repeat;
+		//! 这里插入位置是找到第一个大于等于knot的位置
+		auto insertPos = std::distance(lower_bound(this->knotVector.begin(), this->knotVector.end(), knot),this->knotVector.begin());
+
+		assert(insertTimes >= 0 && "Insert times must be greater than or equal to 0");
+
+		vector<Vector2d> subControlPoints(this->controlPoint.begin() + insertPos - this->degree, controlPoint.begin() + insertPos + 2);
+		vector<double> subKnotVector(this->knotVector.begin() + insertPos - this->degree - 1, this->knotVector.begin() + insertPos + this->degree + 2);
+
+		auto subControlPoints_size = subControlPoints.size();
+		auto subKnotVector_size = subKnotVector.size();
+
+		//! 一次性插入insertTimes次节点knot  我只要申请一个subInsertControlPoints的空间
+		//! 以此存储插入后的控制点就行了  对于K次多项式，如果插入节点的重复度为r，则需要重新计算K+r-1个控制点
+		//! 因此这里只需要申请insertTimes+degree个控制点的空间
+		//! 此时subControlPoints的长度为degree+1，我们可以在subControlPoints的基础上进行开花
+		//! 每次都正好从layer开始，将计算出来的控制点就此放入，如果往后面放入就覆盖了后面要计算的控制点
+		vector<Vector2d> subInsertControlPoints(insertTimes+this->degree, Vector2d(0.0, 0.0));
+		int subInsertControlPoints_size = subInsertControlPoints.size();
+
+		for (int layer = 1; layer <= insertTimes; layer++)
+		{
+			//! 根据开花算法以此计算每一层的控制点
+			for (int i = 0; i <= subControlPoints_size - layer; i++)
+			{
+				double normalizeCoeff = (subKnotVector[this->degree + i] - subKnotVector[layer - 1 + i]);
+				subControlPoints[i] = (subKnotVector[this->degree + i] - knot) * subControlPoints[i];
+				subControlPoints[i]+= (knot - subKnotVector[layer - 1 + i])*subControlPoints[i + 1];
+				subControlPoints[i] /= normalizeCoeff;
+			}
+
+			//! 如果节点插入到了最后一层，将最后一层所有的控制点都放入subInsertControlPoints中
+			//! 否则，将第一个计算和最后一个更新的点放入subInsertControlPoints中
+			if (layer == insertTimes)
+			{
+				int endIndex = subControlPoints_size - layer - 1;
+				for (int j = 0; j <= endIndex; j++)
+				{
+					subInsertControlPoints[j + layer - 1] = subControlPoints[j];
+				}
+			}
+			else
+			{
+				subInsertControlPoints[layer-1] = subControlPoints[0];
+				subInsertControlPoints[subInsertControlPoints_size - layer - 1] = subControlPoints[subControlPoints_size - layer - 1];
+
+			}
+		}
+		//! 最后将插入后的控制点放入原来的控制点中  但是频繁的往中间插入效率不高，还是修改成为每次往最后插入节点
+		
+		
+	}
+
+
 
 }
+
 
 Vector2d BSplineCurve::PointAt(double& t)
 {
