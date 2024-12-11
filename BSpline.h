@@ -12,11 +12,15 @@ using namespace std;
 
 class BSplineCurve {
 public:
+    BSplineCurve() = default;
     BSplineCurve(const std::vector<Eigen::Vector2d>& controlPoints, const std::vector<double>& knotVector);
 
     void discreteCurve2Points();
     void BoehmKnotInsert();
+    BSplineCurve QinKnotInsert(const BSplineCurve& BSCurve, const double& insertKnot);
+
     void OlsoKnotInsert();
+
 
     vector<double> outKnots() { return knotVector; }
     vector<Vector2d> outControlPoints() { return controlPoint; }

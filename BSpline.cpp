@@ -51,7 +51,10 @@ void BSplineCurve::BoehmKnotInsert()
 	//! 确定插入节点索引以及重复度
 	unordered_map<double, int> knotIndexMap;
 	//! 先试一下所有的节点都插入  这很符合贝塞尔曲线的节点的重复度
-	//! 这里还真不能统计所有的节点，只能在B样条有效域内统计
+	//! 这里还真不能统计所有的节点，只能在B样条有效域内统计 特别的
+	//! 这个算法仅仅适用于准均匀B样条曲线  下面要做的就是能够找一个
+	//! 可以在有效域外进行节点插入的算法或者是找一个算法使得
+	//! 能够将任意B样条曲线变成准均匀的B样条曲线
 	for (int i = beginKnotIndex; i <= endKnotIndex; i++)
 	{
 		knotIndexMap[knotVector[i]]++;
@@ -65,7 +68,7 @@ void BSplineCurve::BoehmKnotInsert()
 		double knot = _pair.first;
 		int repeat = _pair.second;
 		//! 插入次数和插入位置
-		int insertTimes = this->degree - repeat;
+		int insertTimes = this->degree - repeat - 1;
 		//! 这里插入位置是找到第一个大于等于knot的位置
 		auto insertPos = std::distance(lower_bound(this->knotVector.begin(), this->knotVector.end(), knot),this->knotVector.begin());
 
@@ -91,9 +94,12 @@ void BSplineCurve::BoehmKnotInsert()
 			for (int i = 0; i <= subControlPoints_size - layer; i++)
 			{
 				double normalizeCoeff = (subKnotVector[this->degree + i] - subKnotVector[layer - 1 + i]);
-				subControlPoints[i] = (subKnotVector[this->degree + i] - knot) * subControlPoints[i];
-				subControlPoints[i]+= (knot - subKnotVector[layer - 1 + i])*subControlPoints[i + 1];
-				subControlPoints[i] /= normalizeCoeff;
+				if (normalizeCoeff != 0.0)
+				{
+					subControlPoints[i] = (subKnotVector[this->degree + i] - knot) * subControlPoints[i];
+					subControlPoints[i] += (knot - subKnotVector[layer - 1 + i]) * subControlPoints[i + 1];
+					subControlPoints[i] /= normalizeCoeff;
+				}
 			}
 
 			//! 如果节点插入到了最后一层，将最后一层所有的控制点都放入subInsertControlPoints中
@@ -121,6 +127,119 @@ void BSplineCurve::BoehmKnotInsert()
 
 
 }
+
+/*
+*@brief: Qin算法插入节点，每次只能插入一个节点，计算所有控制点
+*		 将输入的样条曲线通过Qin节点插入算法转化为准均匀的样条曲线
+*		 然后使用boehm节点插入算法转化为分段Bezier曲线
+*
+***/
+BSplineCurve BSplineCurve::QinKnotInsert(const BSplineCurve& curve, const double& insertKnot)
+{
+	//! 首先确定节点插入前后B样条基函数的转换矩阵
+	//! 
+	size_t n = curve.controlPoint.size() - 1;
+	int k = curve.knotVector.size() - curve.controlPoint.size() - 1;
+	Eigen::MatrixXd transMat = Eigen::MatrixXd::Zero(n + 1, n + 1);
+	Eigen::MatrixXd pointMat(n + 1, 2);
+	for (size_t i = 0; i < pointMat.rows(); i++)
+	{
+		pointMat.row(i) = curve.controlPoint[i].transpose();
+	}
+	for (size_t j = 0; j < n + 1; j++)
+	{
+		double Alpha = 0.0;
+		double Beta = 0.0;
+		double delta_1 = (curve.knotVector[j + k - 1] - curve.knotVector[j]);
+		double delta_2 = (curve.knotVector[j + k] - curve.knotVector[j + 1]);
+		if (insertKnot <= curve.knotVector[j])
+		{
+			Beta = 1.0;
+		}
+		else if (insertKnot <= curve.knotVector[j + 1])
+		{
+			Alpha = delta_1 == 0 ? 0 : (insertKnot - curve.knotVector[j]) / delta_1;
+			Beta = 1.0;
+		}
+		else if (insertKnot <= curve.knotVector[j + k - 1])
+		{
+			Alpha = delta_1 == 0 ? 0 : (insertKnot - curve.knotVector[j]) / delta_1;
+			Beta = delta_2 == 0 ? 0 : (curve.knotVector[j + k] - insertKnot) / delta_2;
+		}
+		else if (insertKnot <= curve.knotVector[j + k])
+		{
+			Alpha = 1.0;
+			Beta = delta_2 == 0 ? 0 : (curve.knotVector[j + k] - insertKnot) / delta_2;
+		}
+		else
+		{
+			Alpha = 1.0;
+		}
+		transMat(j, j) = Alpha;
+		if (j < n)
+		{
+			transMat(j, j + 1) = Beta;
+		}
+	}
+
+	BSplineCurve ans;
+
+	auto L = std::distance(curve.knotVector.begin(), std::lower_bound(curve.knotVector.begin(), curve.knotVector.end(), insertKnot)) + 1;
+	if (L == 0)
+	{
+		return curve;
+	}
+	Eigen::MatrixXd subTransMat = Eigen::MatrixXd::Identity(n + 1, n + 1);
+	bool isKnotIncreasing = false;
+
+	if (L < k || insertKnot == curve.knotVector[k - 1])
+	{
+		subTransMat.block(0, 0, k - 1, k) = transMat.block(0, 1, k, k - 1).transpose();
+		ans.knotVector.assign(curve.knotVector.begin() + 1, curve.knotVector.end());
+	}
+	else if (L > n || insertKnot == curve.knotVector[n + 1])
+	{
+		subTransMat.block(n + 1 - k, n + 1 - k + 1, k - 2, k - 1) = transMat.block(n - k + 1, n - k + 2, k - 1, k - 2).transpose();
+		ans.knotVector.assign(curve.knotVector.begin(), curve.knotVector.end() - 1);
+	}
+	else
+	{
+		isKnotIncreasing = true;
+	}
+
+	//! 如果不属于情况①和③，节点向量增加一个，相应的控制点也增加一个
+	if (isKnotIncreasing)
+	{
+		for (size_t j = 0; j <= L - k + 1; ++j)
+		{
+			ans.controlPoint.emplace_back(curve.controlPoint[j]);
+		}
+		for (size_t j = L + 1; j <= n + 1; j++)
+		{
+			ans.controlPoint.emplace_back(curve.controlPoint[j]);
+		}
+		for (size_t j = L - k + 2; j < L + 1; j++)
+		{
+			double alpha_j = (insertKnot - curve.knotVector[j]) / (curve.knotVector[j + k - 1] - curve.knotVector[j]);
+			Eigen::Vector2d newControlPoint = (1 - alpha_j) * curve.controlPoint[j - 1] + alpha_j * curve.controlPoint[j];
+		}
+	}
+	else
+	{
+		Eigen::MatrixXd mat = subTransMat * pointMat;
+		for (size_t i = 0; i < mat.rows(); i++)
+		{
+			ans.controlPoint.emplace_back(mat.row(i));
+		}
+	}
+	ans.knotVector.emplace_back(insertKnot);
+	std::sort(ans.knotVector.begin(), ans.knotVector.end());
+
+
+	return ans;
+}
+
+
 
 
 Vector2d BSplineCurve::PointAt(double& t)
