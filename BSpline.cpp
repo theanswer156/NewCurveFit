@@ -190,13 +190,10 @@ BSplineCurve BSplineCurve::QinKnotInsert(const BSplineCurve& curve, const double
 	BSplineCurve ans;
 	//auto L = std::distance(curve.knotVector.begin(), curve.knotVector.end());
 	auto L = std::distance(curve.knotVector.begin(), std::upper_bound(curve.knotVector.begin(), curve.knotVector.end(), insertKnot));
-	//if (insertKnot >= curve.knotVector[curve.knotVector.size() >> 1])
-	//{
-	//}
-	//else
-	//{
-	//	L = std::distance(curve.knotVector.begin(), std::upper_bound(curve.knotVector.begin(), curve.knotVector.end(), insertKnot));
-	//}
+	if (L > (curve.knotVector.size() >> 1))
+	{
+		L = std::distance(curve.knotVector.begin(), std::lower_bound(curve.knotVector.begin(), curve.knotVector.end(), insertKnot));
+	}
 	//L > (curve.knotVector.size() >> 1) ? L -= 1 : L += 1;
 	std::cout << "L: " << L << std::endl;
 	if (L == 0)
@@ -206,14 +203,18 @@ BSplineCurve BSplineCurve::QinKnotInsert(const BSplineCurve& curve, const double
 	Eigen::MatrixXd subTransMat = Eigen::MatrixXd::Identity(n + 1, n + 1);
 	bool isKnotIncreasing = false;
 
-	if (L < k || insertKnot == curve.knotVector[k - 1])
+	if (insertKnot == curve.knotVector[k - 1] || L < k)
 	{
+		Eigen::MatrixXd mat = transMat.block(0, 1, k, k - 1).transpose();
+		std::cout << "mat:\n" << mat << std::endl;
 		subTransMat.block(0, 0, k - 1, k) = transMat.block(0, 1, k, k - 1).transpose();
 		ans.knotVector.assign(curve.knotVector.begin() + 1, curve.knotVector.end());
 	}
-	else if (L > n || insertKnot == curve.knotVector[n + 1])
+	else if (insertKnot == curve.knotVector[n + 1] || L > n)
 	{
-		subTransMat.block(n + 1 - k, n + 1 - k + 1, k - 2, k - 1) = transMat.block(n - k + 1, n - k + 2, k - 1, k - 2).transpose();
+		Eigen::MatrixXd mat = transMat.block(n - k + 1, n - k + 2, k, k - 1).transpose();
+		std::cout << "mat:\n" << mat << std::endl;
+		subTransMat.block(n + 2 - k, n + 2 - k, k - 2, k - 1) = transMat.block(n - k + 1, n - k + 2, k - 1, k - 2).transpose();
 		ans.knotVector.assign(curve.knotVector.begin(), curve.knotVector.end() - 1);
 	}
 	else
