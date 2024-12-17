@@ -2,15 +2,17 @@
 #ifndef BEZIERCURVE_H
 #define BEZIERCURVE_H
 
+#include <filesystem>
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 
 using namespace std;
 using namespace Eigen;
-
+namespace fs = std::filesystem;
 
 /**
  * @brief 三阶贝塞尔曲线类，在这个类中完成贝塞尔曲线的拟合
@@ -18,11 +20,15 @@ using namespace Eigen;
 class BezierCurve
 {
 public:
+	BezierCurve() = default;
 	BezierCurve(const std::vector<Vector2d>& _points);
 
 	BezierCurve(const std::vector<Vector2d>& _points,const std::vector<Vector2d>& _tangent);
-	~BezierCurve() {};
+
+
+	virtual~BezierCurve() = 0;
 	std::vector<Eigen::Vector2d> outContralPoints()const;
+	void setControlPoints(const std::vector<Vector2d>& ctrlPoints);
 private:
 	void denseData(const std::vector<Vector2d>& _points);
 	void doComputeTangent();

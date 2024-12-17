@@ -426,6 +426,16 @@ std::vector<Vector2d> BezierCurve::outContralPoints() const
 }
 
 /*
+*@brief 设置控制点
+*@param ctrlPoints 控制点向量
+***/
+void BezierCurve::setControlPoints(const std::vector<Vector2d>& ctrlPoints)
+{
+	assert(ctrlPoints.size() == 4);
+	this->ctrlPoints = ctrlPoints;
+}
+
+/*
 * @brief 向距离较远的两个点之中添加新的点
 ****/
 void BezierCurve::denseData(const vector<Vector2d>& points_)
@@ -676,5 +686,3 @@ double BezierCurve::adaptive_simpson_3_8(const std::vector<Vector2d>& contralPoi
 	return adaptive_simpson_3_8(contralPoints,leftTime, midTime, TOLERENCE / 2.0)
 		  + adaptive_simpson_3_8(contralPoints,midTime, rightTime, TOLERENCE / 2.0);
 }
-
-
