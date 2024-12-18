@@ -20,7 +20,7 @@ CubicBezier::CubicBezier(const std::vector<Vector2d>& contralPoints, const std::
 const vector<CubicBezier> CubicBezier::splitDXF(const std::string& file_path)
 {
 	const string postfix = ".dxf";
-	static const string STRATLOG = "AcDbSpline";
+	static const string STARTLOG = "AcDbSpline";
 	vector<CubicBezier> ans;
 
 	std::ifstream infile(file_path);
@@ -36,15 +36,17 @@ const vector<CubicBezier> CubicBezier::splitDXF(const std::string& file_path)
 	std::string line;
 	while (std::getline(infile, line))
 	{
-		if (line.find(STRATLOG) != std::string::npos)
+		auto pos = line.find(STARTLOG)!= std::string::npos;
+		if (pos)
 		{
 			std::cout << "FOUND STRATLOG, START TO TRANSFORM SPLINE TO BEZIER" << std::endl;
-			ans.emplace_back(CubicBezier::transSplineToBezier(infile));
+			vector<CubicBezier>& temp = transSplineToBezier(infile);
+			ans.insert(ans.end(), temp.begin(), temp.end());
 		}
 	}
 
 
-	return vector<CubicBezier>();
+	return ans;
 }
 
 /*
@@ -94,28 +96,47 @@ vector<CubicBezier>& CubicBezier::transSplineToBezier(std::ifstream& infile)
 	{
 		KNOTSNUM = DEGREE + KNOTSNUM + 1;
 	}
-
 	vector<Vector2d> controlPoints(CONTROLNUM,Eigen::Vector2d::Zero());
+	//! 注意这里记录的是消重之后的节点向量   所以容量是CONTROLNUM/3
+	//! 使用标准库中的allocator有错误  显示没有construct成员
 	vector<double> knots(KNOTSNUM, 0.0);
 
 	//! 跳过后面3行有关组码74、42、43的无用数据
-	ignore_N_line(13);
+	ignore_N_line(6);
 
 	//! 依据组码72、73的值读取节点向量、控制点坐标
 	{
 		string line;
 		//! 读取节点向量
-		std::getline(infile, line);
-		knots[0] = std::stoi(line);
-		for (int i = 1; i < KNOTSNUM-1; ++i)
+		for (int i = 0; i < knots.size(); ++i)
 		{
-			ignore_N_line(5);
+			ignore_N_line(1);
 			std::getline(infile, line);
 			knots[i] = std::stod(line);
 		}
-		ignore_N_line(7);
-		std::getline(infile, line);
-		knots[KNOTSNUM-1] = std::stod(line);
+
+
+		{
+			std::ofstream outfile("C:\\Users\\Zhushengb\\Desktop\\vector_graphic\\knots_011.txt", std::ios::app|std::ios::out);
+			if (outfile.is_open())
+			{
+				for (int i = 1; i < knots.size(); i++)
+				{
+					outfile <<"TIME DIFFERENCRE: " <<i<<"\t" << knots[i] << "\t" << knots[i - 1] <<"\t is \t" << knots[i] - knots[i - 1] << std::endl;
+				}
+				outfile << std::endl;
+				outfile << std::endl;
+				outfile << std::endl;
+				outfile << std::endl;
+				outfile.close();
+			}
+			else
+			{
+				std::cerr << "Error: cannot open file" << std::endl;
+			}
+
+
+		}
 
 		//! 开始读取控制点坐标
 		for (int i = 0; i < CONTROLNUM; ++i)
@@ -133,12 +154,25 @@ vector<CubicBezier>& CubicBezier::transSplineToBezier(std::ifstream& infile)
 	//! 将读取到的节点向量、控制点坐标转换为三次贝塞尔曲线
 	vector<CubicBezier> ans(KNOTSNUM, CubicBezier());
 
-	for (int i = 0; i < KNOTSNUM; ++i)
-	{
-		vector<Vector2d> subControlPoints(controlPoints.begin() + 3 * (i - 1), controlPoints.begin() + 3 * i + 4);
-		CubicBezier cubicBezier(subControlPoints, std::make_pair(knots[i - 1], knots[i]));
-		ans[i] = cubicBezier;
-	}
+	//for (int i = 0; i < KNOTSNUM-1; ++i)
+	//{
+	//	vector<Vector2d> subControlPoints(controlPoints.begin() + 3 * i, controlPoints.begin() + 3 * i + 4);
+	//	CubicBezier cubicBezier(subControlPoints, std::make_pair(knots[i], knots[i+1]));
+	//	ans[i] = cubicBezier;
+	//}
 
 	return ans;
+}
+
+/*
+*@brief: 输出三次贝塞尔曲线的控制点和有效域
+****/
+void operator<<(std::ostream& os, const CubicBezier& cb)
+{
+	os << "Control Points: " << std::endl;
+	for (auto& cp : cb.outContralPoints())
+	{
+		os<<cp<<std::endl;
+	}
+	os << "Range: [ "<<cb.m_vecRange.first<<", "<<cb.m_vecRange.second<<" ]"  << std::endl;
 }

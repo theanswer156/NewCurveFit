@@ -9,6 +9,7 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
+#include <memory>
 
 using namespace std;
 using namespace Eigen;
@@ -26,7 +27,7 @@ public:
 	BezierCurve(const std::vector<Vector2d>& _points,const std::vector<Vector2d>& _tangent);
 
 
-	virtual~BezierCurve() = 0;
+	virtual~BezierCurve() = default;
 	std::vector<Eigen::Vector2d> outContralPoints()const;
 	void setControlPoints(const std::vector<Vector2d>& ctrlPoints);
 private:
@@ -49,9 +50,9 @@ private:
 	bool bezierCurveFittingWithSmooth(std::vector<Vector2d>& points_, const int& begin, const int& end, const double& TOLERENCE = 5.0);
 
 private:
-	std::vector<Vector2d> points;
-	std::vector<Vector2d> tangent;
-	std::vector<Vector2d> ctrlPoints;
+	std::vector<Vector2d> points{};
+	std::vector<Vector2d> tangent{};
+	std::vector<Vector2d> ctrlPoints{};
 	//std::vector<double> arcLengthParameter;
 	double m_length{-1};
 

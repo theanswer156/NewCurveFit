@@ -5,6 +5,7 @@
 #include <random>
 #include "BezierCurve.h"
 #include "BezierToBiArc.h"
+#include "CubicBezier.h"
 
 static vector<vector<Eigen::Vector2d>> readBezierTXT(string filePath)
 {
@@ -352,7 +353,7 @@ static int test3()
 	return 0;
 }
 
-int main(int argc, char* argv[])
+int test4(int argc, char* argv[])
 {
 	if (argc != 3)
 	{
@@ -445,6 +446,23 @@ int main(int argc, char* argv[])
 		}
 		openfile.close();
 	}
+
+
+	return 0;
+}
+
+
+int main(int argc, char* argv[])
+{
+	CubicBezier cubicbezier;
+	const string filePath = "C:\\Users\\Zhushengb\\Desktop\\vector_graphic\\newfile_011.dxf";
+	auto startTime = std::chrono::high_resolution_clock::now();
+	auto vecBezier = cubicbezier.splitDXF(filePath);
+	auto endTime = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+	std::cout << " Spend time: " << duration.count() << " milliseconds" << std::endl;
+
+
 
 
 	return 0;
