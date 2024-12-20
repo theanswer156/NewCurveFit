@@ -455,7 +455,7 @@ int test4(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	CubicBezier cubicbezier;
-	const string filePath = "C:\\Users\\Zhushengb\\Desktop\\vector_graphic\\newfile_011.dxf";
+	const string filePath = "C:\\Users\\Zhushengb\\Desktop\\vector_graphic\\newfile_009.dxf";
 	auto startTime = std::chrono::high_resolution_clock::now();
 	auto vecBezier = cubicbezier.splitDXF(filePath);
 	auto endTime = std::chrono::high_resolution_clock::now();
